@@ -235,6 +235,7 @@ export function recordTransaction(input: {
   type: TransactionType
   quantity: number
   linkedTransactionId?: string
+  timestamp?: string
 }): Transaction {
   const tx: Transaction = {
     id: `t-${String(nextTransactionSeq++).padStart(3, '0')}`,
@@ -244,11 +245,19 @@ export function recordTransaction(input: {
     warehouseName: warehouseName(input.warehouseId),
     type: input.type,
     quantity: input.quantity,
-    timestamp: new Date().toISOString(),
+    timestamp: input.timestamp ?? new Date().toISOString(),
     linkedTransactionId: input.linkedTransactionId,
   }
   transactions.push(tx)
   return tx
+}
+
+function nextProductId() {
+  const max = products.reduce((acc, p) => {
+    const n = Number(p.id.replace(/^p-/, ''))
+    return Number.isFinite(n) && n > acc ? n : acc
+  }, 0)
+  return `p-${String(max + 1).padStart(3, '0')}`
 }
 
 // -------------------------------------------------------------------------
@@ -286,21 +295,8 @@ export function applyStockMovement(
 // -------------------------------------------------------------------------
 // TASK 3 — Warehouse Transfer
 // -------------------------------------------------------------------------
-// This is intentionally incomplete AND buggy. Right now it:
-//   - does NOT validate source/destination warehouses, or check stock
-//   - only decrements the SOURCE product — it never adds the quantity to
-//     the destination warehouse (this is one of the Task 5 bugs: "a transfer
-//     that only updates one warehouse")
-//   - does NOT create a destination product row if one doesn't exist yet
-//   - does NOT log any transactions (no linked TRANSFER_OUT / TRANSFER_IN)
-//
-// Participants must:
-//   1. Validate source !== destination
-//   2. Validate quantity is positive and <= source.currentStock
-//   3. Deduct from source AND add to destination
-//   4. Create a destination product row if the product doesn't exist there yet
-//   5. Apply fully or not at all (no partial writes if validation fails)
-//   6. Record a linked TRANSFER_OUT / TRANSFER_IN pair via recordTransaction
+// Validates everything BEFORE touching any row, so a rejected transfer
+// leaves the store exactly as it was (no partial writes).
 export function applyTransfer(
   productId: string,
   destWarehouseId: string,
@@ -309,14 +305,67 @@ export function applyTransfer(
   const source = findProduct(productId)
   if (!source) throw new Error('Source product not found')
 
-  // TODO: validate destWarehouseId !== source.warehouseId
-  // TODO: validate quantity (positive, finite, <= source.currentStock)
+  // ---- validation phase (read-only) ----
+  if (!warehouses.some((w) => w.id === destWarehouseId)) {
+    throw new Error('Destination warehouse not found')
+  }
+  if (destWarehouseId === source.warehouseId) {
+    throw new Error('Source and destination must be different')
+  }
+  if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error(`Quantity must be a positive whole number (got ${quantity})`)
+  }
+  if (quantity > source.currentStock) {
+    throw new Error(
+      `Transfer quantity (${quantity}) exceeds available stock (${source.currentStock})`,
+    )
+  }
+
+  // ---- write phase (all validations passed) ----
+  // The store keeps one row per product PER warehouse, so the destination row
+  // is matched by name + category at the destination warehouse. If the SKU has
+  // never been stocked there, create it with the same reorder threshold.
+  let destination = products.find(
+    (p) =>
+      p.warehouseId === destWarehouseId &&
+      p.name === source.name &&
+      p.category === source.category,
+  )
+  if (!destination) {
+    destination = {
+      id: nextProductId(),
+      name: source.name,
+      category: source.category,
+      warehouseId: destWarehouseId,
+      currentStock: 0,
+      reorderThreshold: source.reorderThreshold,
+    }
+    products.push(destination)
+  }
 
   source.currentStock -= quantity
+  destination.currentStock += quantity
 
-  // BUG: destination is never found/created/incremented.
-  // TODO: find or create the destination product row, then add quantity to it
-  // TODO: record linked TRANSFER_OUT / TRANSFER_IN transactions
+  // Linked TRANSFER_OUT / TRANSFER_IN pair sharing one timestamp.
+  const timestamp = new Date().toISOString()
+  const out = recordTransaction({
+    productId: source.id,
+    productName: source.name,
+    warehouseId: source.warehouseId,
+    type: 'TRANSFER_OUT',
+    quantity,
+    timestamp,
+  })
+  const incoming = recordTransaction({
+    productId: destination.id,
+    productName: destination.name,
+    warehouseId: destination.warehouseId,
+    type: 'TRANSFER_IN',
+    quantity,
+    timestamp,
+  })
+  out.linkedTransactionId = incoming.id
+  incoming.linkedTransactionId = out.id
 
-  return { source, destination: source }
+  return { source, destination }
 }

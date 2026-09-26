@@ -10,6 +10,17 @@ const TYPE_LABELS: Record<string, string> = {
   TRANSFER_IN: 'Transfer in',
 }
 
+// Locale- and timezone-independent (UTC) so server and client render
+// identical text: new Date().toLocaleString() differs between Node and the
+// browser, which breaks hydration on this page.
+function formatTimestamp(iso: string) {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(
+    d.getUTCHours(),
+  )}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`
+}
+
 export default function TransactionTable({
   transactions,
 }: {
@@ -89,7 +100,7 @@ export default function TransactionTable({
                   <td>{t.warehouseName}</td>
                   <td>{TYPE_LABELS[t.type] ?? t.type}</td>
                   <td>{t.quantity}</td>
-                  <td>{new Date(t.timestamp).toLocaleString()}</td>
+                  <td>{formatTimestamp(t.timestamp)}</td>
                 </tr>
               ))}
             </tbody>
