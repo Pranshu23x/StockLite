@@ -10,6 +10,24 @@ const TYPE_LABELS: Record<string, string> = {
   TRANSFER_IN: 'Transfer in',
 }
 
+// Format the timestamp deterministically. toLocaleString() depends on the
+// environment's locale, so the Node server and the browser rendered
+// different strings ("26/9/2026, 4:00:54 pm" vs "9/26/2026, 4:00:54 PM")
+// and React hydration crashed. Using only numeric Date getters keeps SSR
+// and client output identical regardless of locale.
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const hour24 = d.getHours()
+  const hour12 = hour24 % 12 || 12
+  const meridiem = hour24 < 12 ? 'am' : 'pm'
+  return (
+    `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}, ` +
+    `${hour12}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${meridiem}`
+  )
+}
+
 export default function TransactionTable({
   transactions,
 }: {
@@ -89,7 +107,7 @@ export default function TransactionTable({
                   <td>{t.warehouseName}</td>
                   <td>{TYPE_LABELS[t.type] ?? t.type}</td>
                   <td>{t.quantity}</td>
-                  <td>{new Date(t.timestamp).toLocaleString()}</td>
+                  <td>{formatTimestamp(t.timestamp)}</td>
                 </tr>
               ))}
             </tbody>
