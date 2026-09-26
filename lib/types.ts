@@ -36,7 +36,7 @@ export type StaffUser = {
 }
 
 // Low-stock status shared by the inventory table and status badge.
-export type StockStatus = 'ok' | 'low' | 'critical'
+export type StockStatus = 'ok' | 'low' | 'critical' | 'out'
 
 // The single source of truth for "needs replenishment": a product is low
 // stock when current stock is AT or BELOW its reorder threshold. The table
@@ -47,12 +47,14 @@ export function isLowStock(product: Product): boolean {
 }
 
 export function getStockStatus(product: Product): StockStatus {
+  if (product.currentStock <= 0) return 'out'
   if (product.currentStock < product.reorderThreshold) return 'critical'
   if (isLowStock(product)) return 'low'
   return 'ok'
 }
 
 export function getStockStatusLabel(status: StockStatus): string {
+  if (status === 'out') return 'Out of stock'
   if (status === 'critical') return 'Low stock · below threshold'
   if (status === 'low') return 'Low stock · at threshold'
   return 'In stock'
