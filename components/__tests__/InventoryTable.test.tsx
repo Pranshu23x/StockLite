@@ -58,6 +58,14 @@ const products: Product[] = [
     currentStock: 12,
     reorderThreshold: 4,
   },
+  {
+    id: 'p-7',
+    name: 'Restock Crate',
+    category: 'Materials',
+    warehouseId: 'wh-north',
+    currentStock: 0,
+    reorderThreshold: 10,
+  },
 ]
 
 function renderTable() {
@@ -120,10 +128,16 @@ describe('InventoryTable', () => {
 
     await user.click(screen.getByLabelText('Low stock only'))
 
-    // 38 <= 100 (below), 20 === 20 (at threshold), 4 <= 6 (below)
-    expect(visibleNames()).toEqual(['Shipping Box', 'Safety Vest', 'Barcode Scanner'])
+    // 38 <= 100 (below), 20 === 20 (at threshold), 4 <= 6 (below), 0 <= 10 (out)
+    expect(visibleNames()).toEqual([
+      'Shipping Box',
+      'Safety Vest',
+      'Barcode Scanner',
+      'Restock Crate',
+    ])
     expect(visibleNames()).not.toContain('Packing Tape')
     expect(visibleNames()).not.toContain('Nitrile Gloves')
+    expect(screen.getByText('Out of stock')).toBeInTheDocument()
   })
 
   it('combines the category and low stock filters', async () => {

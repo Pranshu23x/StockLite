@@ -396,6 +396,14 @@ tbody tr:last-child td {
   background: var(--rust);
 }
 
+.status-out {
+  background: rgba(70, 74, 79, 0.14);
+  color: var(--ink-soft);
+}
+.status-out .status-dot {
+  background: var(--steel);
+}
+
 /* Forms */
 .form-panel {
   max-width: 480px;
