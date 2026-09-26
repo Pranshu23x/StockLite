@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Transaction } from '@/lib/types'
+import { Transaction, Warehouse } from '@/lib/types'
 
 const TYPE_LABELS: Record<string, string> = {
   IN: 'Stock in',
@@ -23,13 +23,20 @@ function formatTimestamp(iso: string) {
 
 export default function TransactionTable({
   transactions,
+  warehouses,
 }: {
   transactions: Transaction[]
+  warehouses?: Warehouse[]
 }) {
-  const warehouseOptions = useMemo(
-    () => Array.from(new Set(transactions.map((t) => t.warehouseName))).sort(),
-    [transactions],
-  )
+  // Prefer the full warehouse list (so warehouses with no transactions are
+  // still selectable and land on the empty state); fall back to whatever
+  // warehouse names appear in the data.
+  const warehouseOptions = useMemo(() => {
+    if (warehouses && warehouses.length > 0) {
+      return warehouses.map((w) => w.name).sort()
+    }
+    return Array.from(new Set(transactions.map((t) => t.warehouseName))).sort()
+  }, [transactions, warehouses])
 
   const [typeFilter, setTypeFilter] = useState('all')
   const [warehouseFilter, setWarehouseFilter] = useState('all')
