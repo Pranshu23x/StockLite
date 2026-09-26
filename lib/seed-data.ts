@@ -264,8 +264,9 @@ function nextProductId() {
 // TASK 2 — Stock In / Stock Out
 // -------------------------------------------------------------------------
 // Implemented behavior:
-//   1. Validates quantity is a positive, finite number
-//      (rejects 0, negative, NaN, Infinity, and non-numeric input)
+//   1. Validates quantity is a positive whole number
+//      (rejects 0, negatives, decimals like 2.5, NaN, Infinity, and
+//      non-numeric input — stock is counted in whole units)
 //   2. Blocks OUT movements greater than currentStock, so stock never
 //      goes negative
 //   3. Applies the movement to the correct product row (each row belongs
@@ -282,8 +283,8 @@ export function applyStockMovement(
   const product = findProduct(productId)
   if (!product) throw new Error('Product not found')
 
-  if (typeof quantity !== 'number' || !Number.isFinite(quantity) || quantity <= 0) {
-    throw new Error('Quantity must be a number greater than 0')
+  if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error(`Quantity must be a whole number greater than 0 (got ${quantity})`)
   }
 
   if (direction === 'OUT' && quantity > product.currentStock) {

@@ -26,6 +26,10 @@ export default function StockForm({
       setError('Enter a quantity greater than 0.')
       return
     }
+    if (!Number.isInteger(parsedQuantity)) {
+      setError(`Quantity must be a whole number — ${quantity} units is not a valid stock count.`)
+      return
+    }
     if (
       direction === 'OUT' &&
       selectedProduct &&
@@ -92,6 +96,7 @@ export default function StockForm({
             id="quantity"
             type="number"
             min={1}
+            step={1}
             placeholder="0"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
