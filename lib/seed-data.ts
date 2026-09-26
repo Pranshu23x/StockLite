@@ -263,17 +263,17 @@ function nextProductId() {
 // -------------------------------------------------------------------------
 // TASK 2 — Stock In / Stock Out
 // -------------------------------------------------------------------------
-// This is intentionally incomplete AND buggy. Right now it:
-//   - does NOT validate the quantity (accepts 0, negative, or non-numeric)
-//   - does NOT block a stock-out that exceeds current stock
-//     (so currentStock can go NEGATIVE — this is one of the Task 5 bugs)
-//   - does NOT call recordTransaction, so nothing shows up in History
+// Implemented behavior:
+//   1. Validates quantity is a positive, finite number
+//      (rejects 0, negative, NaN, Infinity, and non-numeric input)
+//   2. Blocks OUT movements greater than currentStock, so stock never
+//      goes negative
+//   3. Applies the movement to the correct product row (each row belongs
+//      to exactly one warehouse, so the correct warehouse is updated)
+//   4. Calls recordTransaction(...) so the movement appears in History
 //
-// Participants must:
-//   1. Validate quantity is a positive, finite number
-//   2. Block OUT movements greater than currentStock
-//   3. Apply the movement to the correct product
-//   4. Call recordTransaction(...) so it appears in Transaction History
+// All validation happens BEFORE any mutation, so a rejected request
+// leaves no partial writes behind.
 export function applyStockMovement(
   productId: string,
   quantity: number,
@@ -282,12 +282,25 @@ export function applyStockMovement(
   const product = findProduct(productId)
   if (!product) throw new Error('Product not found')
 
-  // TODO: validate quantity (reject <= 0, NaN, etc.)
-  // TODO: for OUT, block if quantity > product.currentStock
+  if (typeof quantity !== 'number' || !Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error('Quantity must be a number greater than 0')
+  }
+
+  if (direction === 'OUT' && quantity > product.currentStock) {
+    throw new Error(
+      `Insufficient stock: ${product.currentStock} unit(s) on hand at this warehouse`,
+    )
+  }
 
   product.currentStock += direction === 'IN' ? quantity : -quantity
 
-  // TODO: recordTransaction({ ... })
+  recordTransaction({
+    productId: product.id,
+    productName: product.name,
+    warehouseId: product.warehouseId,
+    type: direction,
+    quantity,
+  })
 
   return product
 }

@@ -10,11 +10,13 @@ const TYPE_LABELS: Record<string, string> = {
   TRANSFER_IN: 'Transfer in',
 }
 
-// Locale- and timezone-independent (UTC) so server and client render
-// identical text: new Date().toLocaleString() differs between Node and the
-// browser, which breaks hydration on this page.
-function formatTimestamp(iso: string) {
+// Deterministic timestamp text: locale APIs (toLocaleString) render
+// differently in Node vs the browser and timezone-dependent getters render
+// differently when the server's TZ differs from the client's — either one
+// breaks React hydration. UTC numeric getters are identical everywhere.
+function formatTimestamp(iso: string): string {
   const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(
     d.getUTCHours(),
