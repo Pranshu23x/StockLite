@@ -15,9 +15,29 @@ export async function POST(request: Request) {
 
   const action = body.action
 
+  // Belt-and-braces type guard: quantities may only arrive as numbers,
+  // numeric strings, null or undefined (the last two fall through to the
+  // whole-unit check in lib/seed-data.ts via Number()). Booleans, objects
+  // and arrays would otherwise be coerced by Number() into a valid quantity
+  // (e.g. true -> 1), so they are rejected here before any business logic.
+  const quantity = body.quantity
+  if (body.action === 'stock' || body.action === 'transfer') {
+    const allowed =
+      quantity === undefined ||
+      quantity === null ||
+      typeof quantity === 'number' ||
+      typeof quantity === 'string'
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'quantity must be a number' },
+        { status: 400 },
+      )
+    }
+  }
+
   try {
     if (action === 'stock') {
-      const { productId, quantity, direction } = body as {
+      const { productId, direction } = body as {
         productId: string
         quantity: number
         direction: 'IN' | 'OUT'
@@ -33,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     if (action === 'transfer') {
-      const { productId, destWarehouseId, quantity } = body as {
+      const { productId, destWarehouseId } = body as {
         productId: string
         destWarehouseId: string
         quantity: number

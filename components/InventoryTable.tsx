@@ -6,6 +6,7 @@ import {
   Warehouse,
   getStockStatus,
   getStockStatusLabel,
+  isLowStock,
 } from '@/lib/types'
 import StatusBadge from '@/components/StatusBadge'
 
@@ -35,7 +36,7 @@ export default function InventoryTable({
     return products.filter((p) => {
       if (selectedCategory !== 'all' && p.category !== selectedCategory)
         return false
-      if (lowStockOnly && p.currentStock > p.reorderThreshold) return false
+      if (lowStockOnly && !isLowStock(p)) return false
       return true
     })
   }, [products, selectedCategory, lowStockOnly])
