@@ -45,7 +45,7 @@ export function getStockStatus(product: Product): StockStatus {
 }
 
 export function getStockStatusLabel(status: StockStatus): string {
-  if (status === 'critical') return 'Below threshold'
-  if (status === 'low') return 'At threshold'
+  if (status === 'critical') return 'Low stock · below threshold'
+  if (status === 'low') return 'Low stock · at threshold'
   return 'In stock'
 }

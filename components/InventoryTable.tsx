@@ -26,6 +26,11 @@ export default function InventoryTable({
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [lowStockOnly, setLowStockOnly] = useState(false)
 
+  const resetFilters = () => {
+    setSelectedCategory('all')
+    setLowStockOnly(false)
+  }
+
   const visibleProducts = useMemo(() => {
     return products.filter((p) => {
       if (selectedCategory !== 'all' && p.category !== selectedCategory)
@@ -72,8 +77,9 @@ export default function InventoryTable({
           ))}
         </select>
 
-        <label className="checkbox-filter">
+        <label className="checkbox-filter" htmlFor="low-stock-only">
           <input
+            id="low-stock-only"
             type="checkbox"
             checked={lowStockOnly}
             onChange={(e) => setLowStockOnly(e.target.checked)}
@@ -87,6 +93,9 @@ export default function InventoryTable({
           <div className="empty-state">
             <h3>No products match these filters</h3>
             <p>Try a different category or clear the low stock filter.</p>
+            <button type="button" className="btn btn-secondary" onClick={resetFilters}>
+              Clear filters
+            </button>
           </div>
         ) : (
           <div className="table-scroll" tabIndex={0} aria-label="Inventory table">

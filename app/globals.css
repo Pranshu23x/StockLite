@@ -514,6 +514,10 @@ tbody tr:last-child td {
   margin: 0;
 }
 
+.empty-state .btn {
+  margin-top: 18px;
+}
+
 /* Summary strip on inventory page */
 .summary-strip {
   display: grid;
